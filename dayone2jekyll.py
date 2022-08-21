@@ -15,6 +15,9 @@ import re
 from pprint import pprint
 from dataclass_wizard import JSONWizard
 
+
+photoPattern = re.compile("!\[\]\(dayone-moment.*?([A-Za-z0-9]+)\)")
+
 @dataclasses.dataclass
 class Location(JSONWizard):
     latitude: float
@@ -60,6 +63,8 @@ class Entry(JSONWizard):
                              .replace(r"\." , "." )\
                              .replace(r"\\" , "\\")
 
+        self.text = photoPattern.sub(r"![](../photos/\1)", self.text)
+
     def __eq__(self, other):
         return self.creation_date == other.creation_date
     def __lt__(self, other):
@@ -85,7 +90,7 @@ class Entry(JSONWizard):
         jekyll += f"---\n{self.text}"
 
         if dirPath:
-            date = self.creation_date.strftime("%Y-%M-%d-%B%d")
+            date = self.creation_date.strftime("%Y-%m-%d-%B%d")
             filename = dirPath.joinpath(f"{date}.md")
             i = 2
             while filename.exists():
@@ -138,9 +143,13 @@ if __name__ == "__main__":
         journal = json.loads(zip.read(args.journal + ".json"))
         extracted = extract(journal, args.journal)
 
-    if args.jekyll:
-        jekyllPath = args.jekyll.joinpath("_posts")
-        jekyllPath.mkdir(exist_ok=True, parents=True)
-        for entry in extracted:
-            entry.Jekyll(jekyllPath)
+        if args.jekyll:
+            jekyllPath = args.jekyll.joinpath("_posts")
+            jekyllPath.mkdir(exist_ok=True, parents=True)
+            for entry in extracted:
+                entry.Jekyll(jekyllPath)
+
+            # for path in zip.namelist():
+            #     if path.startswith("photos"):
+            #         zip.extract(path, path=args.jekyll)
 
